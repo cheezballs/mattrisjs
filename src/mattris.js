@@ -1,10 +1,11 @@
-import Phaser from 'phaser';
-import Playfield from "./Playfield";
-import Pieces from "./Pieces";
-import Colors from "./Colors";
-import {findGravityForLines} from "./GravityBreakpoints";
-import NextPieceDisplay from "./NextPieceDisplay";
-import Constants from "./Constants";
+import Phaser from "phaser";
+import Playfield from "./Playfield.js";
+import Pieces from "./constants/pieces.js";
+import Colors from "./constants/colors";
+import {findGravityForLines} from "./constants/gravity-breakpoints";
+import NextPieceDisplay from "./next-piece-display.js";
+import Constants from "./constants/Constants.js";
+import backgroundImage from "./assets/background.png";
 
 export default class Mattris extends Phaser.Scene {
 
@@ -21,7 +22,7 @@ export default class Mattris extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image("background", "../assets/background.png");
+        this.load.image("background", backgroundImage);
     }
 
     create() {
@@ -93,7 +94,7 @@ export default class Mattris extends Phaser.Scene {
 
     handleInput() {
         if (Phaser.Input.Keyboard.JustDown(this.keyEnter)) {
-            if (this.gameState === GameState.GameOver) {
+            if (this.gameState === Constants.GameState.GameOver) {
                 this.newGame();
             } else {
                 this.togglePause();
