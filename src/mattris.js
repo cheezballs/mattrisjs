@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import Playfield from "./Playfield.js";
 import Pieces from "./constants/pieces.js";
-import Colors from "./constants/colors";
 import {findGravityForLines} from "./constants/gravity-breakpoints";
 import NextPieceDisplay from "./next-piece-display.js";
 import Constants from "./constants/Constants.js";
@@ -246,8 +245,8 @@ export default class Mattris extends Phaser.Scene {
         const pieceIndex = Phaser.Math.Between(0, Object.keys(Pieces).length - 1);
         const pieceType = Object.keys(Pieces)[pieceIndex];
         const pieceShapes = Object.values(Pieces)[pieceIndex];
-        const colorIndex = Phaser.Math.Between(0, Object.keys(Colors).length - 1);
-        const randColor = Object.values(Colors)[colorIndex];
+        const colorIndex = Phaser.Math.Between(0, Object.keys(Constants.Colors).length - 1);
+        const randColor = Object.values(Constants.Colors)[colorIndex];
 
         return {
             shapes: pieceShapes,
