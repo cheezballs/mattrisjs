@@ -7,13 +7,13 @@ const GravityBreakpoints = [
             gravity: .75
         },
         30: {
-            gravity: .5
+            gravity: .6
         },
         40: {
-            gravity: .3
+            gravity: .4
         },
         50: {
-            gravity: .2
+            gravity: .25
         },
         60: {
             gravity: .1

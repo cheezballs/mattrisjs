@@ -58,6 +58,15 @@ const Constants = {
 		Green: 0x008000,
 		Yellow: 0xffff00,
 		White: 0xffffff
+	},
+
+	Inputs: {
+		Up: "Up",
+		Down: "Down",
+		Left: "Left",
+		Right: "Right",
+		QuickDrop: "QuickDrop",
+		Rotate: "Rotate"
 	}
 
 }

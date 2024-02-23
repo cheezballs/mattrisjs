@@ -1,8 +1,8 @@
 import Phaser from "phaser";
-import Playfield from "./Playfield.js";
-import Pieces from "./constants/pieces.js";
-import {findGravityForLines} from "./constants/gravity-breakpoints";
-import NextPieceDisplay from "./next-piece-display.js";
+import Playfield from "./game-objects/playfield.js";
+import Pieces from "./game-objects/pieces.js";
+import {findGravityForLines} from "./game-objects/gravity-breakpoints";
+import NextPieceDisplay from "./game-objects/next-piece-display.js";
 import Constants from "./constants/Constants.js";
 import backgroundImage from "./assets/background.png";
 
@@ -36,7 +36,7 @@ export default class Mattris extends Phaser.Scene {
 		this.handleInput(delta);
 		this.drawStats();
 		this.graphics.clear();
-		this.drawPlayfield();
+		this.playfield.draw(this.graphics);
 		this.drawActivePiece();
 		this.drawNextPiece();
 	}
@@ -52,10 +52,6 @@ export default class Mattris extends Phaser.Scene {
 		this.gameState = Constants.GameState.GameOver;
 
 		this.gravityTimer = this.time.addEvent(this.timerConfig);
-	}
-
-	drawPlayfield() {
-		this.playfield.draw(this.graphics);
 	}
 
 	drawActivePiece() {
@@ -79,53 +75,6 @@ export default class Mattris extends Phaser.Scene {
 	drawNextPiece() {
 		if (this.nextPiece) {
 			this.nextPieceDisplay.draw(this.graphics);
-		}
-	}
-
-	createControls() {
-		const keyInput = this.input.keyboard;
-		this.keyLeft = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
-		this.keyRight = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
-		this.keyDown = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
-		this.keyUp = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
-		this.keyEnter = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-		this.keySpace = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-	}
-
-	handleInput() {
-		if (Phaser.Input.Keyboard.JustDown(this.keyEnter)) {
-			if (this.gameState === Constants.GameState.GameOver) {
-				this.newGame();
-			} else {
-				this.togglePause();
-			}
-		}
-		if (Constants.GameState.Running === this.gameState) {
-			const currentShape = this.activePiece.shapes[this.activePiece.rotation];
-			const piece = this.activePiece;
-
-			if (Phaser.Input.Keyboard.JustDown(this.keyLeft)) {
-				if (this.isValidPosition(currentShape, piece.rowPosition, piece.colPosition - 1)) {
-					piece.colPosition -= 1;
-				}
-			}
-
-			if (Phaser.Input.Keyboard.JustDown(this.keyRight)) {
-				if (this.isValidPosition(currentShape, piece.rowPosition, piece.colPosition + 1)) {
-					piece.colPosition += 1;
-				}
-			}
-
-			if (Phaser.Input.Keyboard.JustDown(this.keyUp)) {
-				const nextShape = piece.shapes[this.peekNextRotation()];
-				if (this.isValidPosition(nextShape, piece.rowPosition, piece.colPosition)) {
-					this.activePiece.rotation = this.peekNextRotation();
-				}
-			}
-
-			if (Phaser.Input.Keyboard.JustDown(this.keyDown)) {
-				this.handleFastDrop(currentShape, piece);
-			}
 		}
 	}
 
@@ -154,9 +103,7 @@ export default class Mattris extends Phaser.Scene {
 				}
 			}
 		}
-
 		return true;
-
 	}
 
 	peekNextRotation() {
@@ -278,6 +225,53 @@ export default class Mattris extends Phaser.Scene {
 			color: randColor,
 			type: pieceType
 		}
+	}
+
+	handleDelayedRepeatingDown(input) {
+		if (this.keyTimer !== null) {
+			this.keyTimer.remove();
+		}
+		this.handleInput(input);
+		this.keyTimer = this.time.addEvent({
+			delay: 250,
+			callback: () => this.handleInput(input),
+			loop: true
+		});
+	}
+
+	handleUp(input) {
+		if (this.keyTimer !== null) {
+			this.keyTimer.remove();
+			this.keyTimer = null;
+		}
+	}
+
+	handleInput(input) {
+		if(this.gameState === Constants.GameState.Running) {
+			if (input === Constants.Inputs.Right) {
+				this.
+			}
+		}
+	}
+
+	createControls() {
+		const keyInput = this.input.keyboard;
+		this.keyLeft = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+		this.keyRight = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+		this.keyDown = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+		this.keyUp = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+		this.keyEnter = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+		this.keySpace = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+		this.keyDown.on('down', () => {
+			this.handleDelayedRepeatingDown(Constants.Inputs.Down);
+		});
+
+		this.keyDown.on('up', () => {
+			this.handleUp(Constants.Inputs.Down);
+		});
+
+
 	}
 
 	createCenteredTextElement(textElement) {
