@@ -4,11 +4,11 @@
   "private": false,
   "dependencies": {
     "bootstrap": "^5.3.2",
-    "http-server": "^14.1.1",
-    "phaser": "^3.70.0"
+    "phaser": "^3.70.0",
+    "webpack-dev-server": "^5.0.2"
   },
   "scripts": {
-    "start": "webpack --mode development && http-server dist",
+    "start": "webpack serve --mode development",
     "build": "webpack --mode production"
   },
   "author": {

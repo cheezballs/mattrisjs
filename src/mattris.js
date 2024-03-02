@@ -1,8 +1,8 @@
 import Phaser from "phaser";
-import Playfield from "./game-objects/playfield.js";
-import Pieces from "./game-objects/pieces.js";
-import {findGravityForLines} from "./game-objects/gravity-breakpoints";
-import NextPieceDisplay from "./game-objects/next-piece-display.js";
+import Playfield from "./components/playfield.js";
+import Pieces from "./components/pieces.js";
+import {findGravityForLines} from "./components/gravity-breakpoints";
+import NextPieceDisplay from "./components/next-piece-display.js";
 import Constants from "./constants/Constants.js";
 import backgroundImage from "./assets/background.png";
 
@@ -164,18 +164,30 @@ export default class Mattris extends Phaser.Scene {
 
 	gravityDrop() {
 		const currentShape = this.activePiece.shapes[this.activePiece.rotation];
-		const piece = this.activePiece;
-		this.handleDrop(currentShape, piece);
+		this.handleDrop(currentShape, this.activePiece);
+	}
 
-		// increment lines
-		// increment score
-		// set level val equal to the breakpoint index for the line
+	playerDrop() {
+		const currentShape = this.activePiece.shapes[this.activePiece.rotation];
+		this.handleDrop(currentShape, this.activePiece);
 	}
 
 	drawStats() {
 		this.scoreText.text = this.scoreVal;
 		this.linesText.text = this.linesVal;
 		this.levelText.text = this.levelVal;
+
+		if(Constants.GameState.Running === this.gameState) {
+			this.statusText.text = "Running";
+			this.statusText.visible = false;
+		} else {
+			if(Constants.GameState.GameOver === this.gameState) {
+				this.statusText.text = "Press Enter To Start";
+			} else if (Constants.GameState.Paused === this.gameState) {
+				this.statusText.text = "Paused";
+			}
+			this.statusText.visible = true;
+		}
 	}
 
 	newGame() {
@@ -190,7 +202,7 @@ export default class Mattris extends Phaser.Scene {
 	}
 
 	togglePause() {
-		this.gameState = this.gameState === Constants.GameState.Paused ? this.gameState = Constants.GameState.Running : Constants.GameState.Paused;
+		this.gameState = this.gameState === Constants.GameState.Paused ? Constants.GameState.Running : Constants.GameState.Paused;
 	}
 
 	getNewActivePiece() {
@@ -240,7 +252,7 @@ export default class Mattris extends Phaser.Scene {
 	}
 
 	handleUp(input) {
-		if (this.keyTimer !== null) {
+		if (this.keyTimer != null) {
 			this.keyTimer.remove();
 			this.keyTimer = null;
 		}
@@ -248,8 +260,15 @@ export default class Mattris extends Phaser.Scene {
 
 	handleInput(input) {
 		if(this.gameState === Constants.GameState.Running) {
-			if (input === Constants.Inputs.Right) {
-				this.
+			if (input === Constants.Inputs.Down) {
+				this.playerDrop();
+			}
+			if (input === Constants.Inputs.Enter) {
+				this.togglePause();
+			}
+		} else if(this.gameState === Constants.GameState.GameOver) {
+			if (input === Constants.Inputs.Enter) {
+				this.newGame();
 			}
 		}
 	}
@@ -271,6 +290,9 @@ export default class Mattris extends Phaser.Scene {
 			this.handleUp(Constants.Inputs.Down);
 		});
 
+		this.keyEnter.on('up', () => {
+			this.handleInput(Constants.Inputs.Enter)
+		});
 
 	}
 
@@ -286,6 +308,8 @@ export default class Mattris extends Phaser.Scene {
 		this.scoreText = this.createCenteredTextElement(Constants.score);
 		this.linesText = this.createCenteredTextElement(Constants.lines);
 		this.levelText = this.createCenteredTextElement(Constants.level);
+		this.statusText = this.createCenteredTextElement(Constants.status);
+		this.statusText.setFontSize(18);
 	}
 
 	createBackground() {

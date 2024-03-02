@@ -41,6 +41,13 @@ const Constants = {
         height: 53
     },
 
+	status: {
+		x: 19,
+		y: 365,
+		width: 360,
+		height: 2
+	},
+
     textFieldStyle: {
         fontSize: "32px",
         fill: '#fff'
@@ -66,7 +73,8 @@ const Constants = {
 		Left: "Left",
 		Right: "Right",
 		QuickDrop: "QuickDrop",
-		Rotate: "Rotate"
+		Rotate: "Rotate",
+		Enter: "Enter"
 	}
 
 }

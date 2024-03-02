@@ -12,6 +12,11 @@ module.exports = {
 			phaser: "phaser"
 		}
 	},
+	devServer: {
+		compress: true,
+		port: 9000,
+		hot: true
+	},
 	module: {
 		rules: [
 			{
@@ -31,7 +36,7 @@ module.exports = {
 	},
 	plugins: [
 		new HtmlWebpackPlugin({
-			template: "src/index.html",
+			template: "./src/index.html",
 		}),
 	],
 };
