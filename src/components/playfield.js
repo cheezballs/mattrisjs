@@ -1,3 +1,5 @@
+import GameConstants from "../constants/constants";
+
 class Playfield {
 
     constructor(x, y, cols, rows, blockSize, spacing) {
@@ -99,6 +101,34 @@ class Playfield {
             }
         }
     }
+
+	isValidPosition(shape, rowPosition, colPosition) {
+		const shapeWidth = shape.reduce((max, current) => Math.max(max, current.length), 0);
+		const shapeHeight = shape.length;
+
+		// screen bounds
+		if (colPosition < 0 || colPosition + shapeWidth > GameConstants.cols) {
+			return false
+		}
+		if (rowPosition < 0 || rowPosition + shapeHeight > GameConstants.rows) {
+			return false;
+		}
+
+		// other blocks
+		for (let i = 0; i < shape.length; i++) {
+			const row = shape[i];
+			for (let j = 0; j < row.length; j++) {
+				const cell = row[j];
+				if (cell && cell === 1) {
+					const backgroundCell = this.grid[rowPosition + i][colPosition + j];
+					if (backgroundCell.blocked) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
 }
 
 export default Playfield;

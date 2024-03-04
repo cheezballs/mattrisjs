@@ -1,22 +1,27 @@
 import Phaser from "phaser";
 import Playfield from "./components/playfield.js";
-import Pieces from "./components/pieces.js";
+import {getRandomPiece} from "./components/pieces.js";
 import {findGravityForLines} from "./components/gravity-breakpoints";
 import NextPieceDisplay from "./components/next-piece-display.js";
-import Constants from "./constants/Constants.js";
 import backgroundImage from "./assets/background.png";
+import {calculateScore} from "./components/score";
+import GameConstants from "./constants/constants";
 
 export default class Mattris extends Phaser.Scene {
 
 	constructor() {
 		super("Mattris");
 		this.graphics = null;
-		this.timerConfig = {
+		this.gravityTimerConfig = {
 			delay: 1000 * findGravityForLines(this.linesVal),
 			callback: this.gravityDrop,
 			callbackScope: this,
 			loop: true,
 			paused: true
+		};
+		this.quickDropTimerConfig = {
+			...this.gravityTimerConfig,
+			delay: 30,
 		};
 	}
 
@@ -38,20 +43,7 @@ export default class Mattris extends Phaser.Scene {
 		this.graphics.clear();
 		this.playfield.draw(this.graphics);
 		this.drawActivePiece();
-		this.drawNextPiece();
-	}
-
-	resetGame() {
-		this.scoreVal = 0;
-		this.linesVal = 0;
-		this.levelVal = 0;
-		this.playfield = new Playfield(Constants.playField.x, Constants.playField.y, Constants.cols, Constants.rows, Constants.blockSize, Constants.spacing);
-		this.nextPieceDisplay = new NextPieceDisplay(Constants.nextPiece.x, Constants.nextPiece.y, Constants.maxPieceSize, Constants.maxPieceSize, Constants.previewBlockSize);
-		this.activePiece = null;
-		this.nextPiece = null;
-		this.gameState = Constants.GameState.GameOver;
-
-		this.gravityTimer = this.time.addEvent(this.timerConfig);
+		this.nextPieceDisplay.draw(this.graphics);
 	}
 
 	drawActivePiece() {
@@ -65,45 +57,55 @@ export default class Mattris extends Phaser.Scene {
 					if (cell && cell === 1) {
 						const backgroundCell = this.playfield.grid[this.activePiece.rowPosition + i][this.activePiece.colPosition + j];
 						this.graphics.fillStyle(this.activePiece.color, 1);
-						this.graphics.fillRect(backgroundCell.x, backgroundCell.y, Constants.blockSize, Constants.blockSize);
+						this.graphics.fillRect(backgroundCell.x, backgroundCell.y, GameConstants.blockSize, GameConstants.blockSize);
 					}
 				}
 			}
 		}
 	}
 
-	drawNextPiece() {
-		if (this.nextPiece) {
-			this.nextPieceDisplay.draw(this.graphics);
-		}
+	resetGame() {
+		this.scoreVal = 0;
+		this.linesVal = 0;
+		this.levelVal = 0;
+		this.playfield = new Playfield(GameConstants.playField.x, GameConstants.playField.y, GameConstants.cols, GameConstants.rows, GameConstants.blockSize, GameConstants.spacing);
+		this.nextPieceDisplay = new NextPieceDisplay(GameConstants.nextPiece.x, GameConstants.nextPiece.y, GameConstants.maxPieceSize, GameConstants.maxPieceSize, GameConstants.previewBlockSize);
+		this.activePiece = null;
+		this.nextPiece = null;
+		this.gameState = GameConstants.GameState.GameOver;
+		this.gravityTimer = this.time.addEvent(this.gravityTimerConfig);
 	}
 
-	isValidPosition(shape, rowPosition, colPosition) {
-		const shapeWidth = shape.reduce((max, current) => Math.max(max, current.length), 0);
-		const shapeHeight = shape.length;
+	newGame() {
+		this.resetGame();
+		this.activePiece = this.getNewActivePiece();
+		this.nextPiece = getRandomPiece();
+		this.nextPieceDisplay.piece = this.nextPiece;
+		this.gameState = GameConstants.GameState.Running;
+		this.gravityTimer.paused = false;
+		this.levelVal = 1;
+		this.scoreVal = 0;
+	}
 
-		// screen bounds
-		if (colPosition < 0 || colPosition + shapeWidth > Constants.cols) {
-			return false
-		}
-		if (rowPosition < 0 || rowPosition + shapeHeight > Constants.rows) {
-			return false;
-		}
+	getNewActivePiece() {
+		let piece = getRandomPiece();
+		this.setDefaultPosition(piece);
+		return piece;
+	}
 
-		// other blocks
-		for (let i = 0; i < shape.length; i++) {
-			const row = shape[i];
-			for (let j = 0; j < row.length; j++) {
-				const cell = row[j];
-				if (cell && cell === 1) {
-					const backgroundCell = this.playfield.grid[rowPosition + i][colPosition + j];
-					if (backgroundCell.blocked) {
-						return false;
-					}
-				}
-			}
-		}
-		return true;
+	cycleActivePiece() {
+		let piece = {...this.nextPiece};
+		this.setDefaultPosition(piece);
+		this.activePiece = piece;
+		this.nextPiece = getRandomPiece();
+		this.nextPieceDisplay.piece = this.nextPiece;
+	}
+
+	setDefaultPosition(piece) {
+		piece.colPosition = GameConstants.cols / 2;
+		piece.rowPosition = 0;
+		piece.rotation = 0;
+		piece.maxRotation = piece.shapes.length - 1;
 	}
 
 	peekNextRotation() {
@@ -115,53 +117,6 @@ export default class Mattris extends Phaser.Scene {
 		}
 	}
 
-	handleFastDrop(currentShape, piece) {
-
-	}
-
-	handleDrop(currentShape, piece) {
-		if (this.isValidPosition(currentShape, piece.rowPosition + 1, piece.colPosition)) {
-			piece.rowPosition += 1;
-		} else {
-			this.playfield.blockCells(currentShape, piece.rowPosition, piece.colPosition, this.activePiece.color);
-			const rowsToClear = this.playfield.getRowsToClear(piece.rowPosition, currentShape.length);
-			this.scoreRows(rowsToClear);
-			this.cycleActivePiece();
-		}
-		this.gravityTimer.reset(this.timerConfig);
-		this.gravityTimer.paused = false;
-	}
-
-	scoreRows(rowsToClear) {
-		if (rowsToClear.length > 0) {
-			this.scoreVal += this.calculateScore(rowsToClear.length);
-			this.playfield.destroyRows(rowsToClear);
-			this.linesVal += rowsToClear.length;
-			this.levelVal = Math.floor(this.linesVal / 10) + 1;
-		}
-	}
-
-	calculateScore(rows) {
-		let multiplier;
-		switch (rows) {
-			case 1:
-				multiplier = 4;
-				break;
-			case 2:
-				multiplier = 10;
-				break;
-			case 3:
-				multiplier = 30;
-				break;
-			case 4:
-				multiplier = 120;
-				break;
-			default:
-				multiplier = 1;
-		}
-		return this.levelVal * multiplier;
-	}
-
 	gravityDrop() {
 		const currentShape = this.activePiece.shapes[this.activePiece.rotation];
 		this.handleDrop(currentShape, this.activePiece);
@@ -170,6 +125,31 @@ export default class Mattris extends Phaser.Scene {
 	playerDrop() {
 		const currentShape = this.activePiece.shapes[this.activePiece.rotation];
 		this.handleDrop(currentShape, this.activePiece);
+		this.gravityTimer.reset(this.gravityTimerConfig);
+		this.gravityTimer.paused = false;
+	}
+
+	handleDrop(currentShape, piece) {
+		if (this.playfield.isValidPosition(currentShape, piece.rowPosition + 1, piece.colPosition)) {
+			piece.rowPosition += 1;
+		} else {
+			this.playfield.blockCells(currentShape, piece.rowPosition, piece.colPosition, this.activePiece.color);
+			const rowsToClear = this.playfield.getRowsToClear(piece.rowPosition, currentShape.length);
+			this.scoreRows(rowsToClear);
+			this.cycleActivePiece();
+			this.gravityTimer.reset(this.gravityTimerConfig);
+			this.gravityTimer.paused = false;
+			this.gameState = GameConstants.GameState.Running;
+		}
+	}
+
+	scoreRows(rowsToClear) {
+		if (rowsToClear.length > 0) {
+			this.scoreVal += calculateScore(rowsToClear.length, this.levelVal);
+			this.playfield.destroyRows(rowsToClear);
+			this.linesVal += rowsToClear.length;
+			this.levelVal = Math.floor(this.linesVal / 10) + 1;
+		}
 	}
 
 	drawStats() {
@@ -177,66 +157,65 @@ export default class Mattris extends Phaser.Scene {
 		this.linesText.text = this.linesVal;
 		this.levelText.text = this.levelVal;
 
-		if(Constants.GameState.Running === this.gameState) {
+		if(GameConstants.GameState.Running === this.gameState) {
 			this.statusText.text = "Running";
 			this.statusText.visible = false;
 		} else {
-			if(Constants.GameState.GameOver === this.gameState) {
+			if(GameConstants.GameState.GameOver === this.gameState) {
 				this.statusText.text = "Press Enter To Start";
-			} else if (Constants.GameState.Paused === this.gameState) {
+			} else if (GameConstants.GameState.Paused === this.gameState) {
 				this.statusText.text = "Paused";
 			}
 			this.statusText.visible = true;
 		}
 	}
 
-	newGame() {
-		this.resetGame();
-		this.activePiece = this.getNewActivePiece();
-		this.nextPiece = this.getRandomPiece();
-		this.nextPieceDisplay.piece = this.nextPiece;
-		this.gameState = Constants.GameState.Running;
-		this.gravityTimer.paused = false;
-		this.levelVal = 1;
-		this.scoreVal = 0;
-	}
-
-	togglePause() {
-		this.gameState = this.gameState === Constants.GameState.Paused ? Constants.GameState.Running : Constants.GameState.Paused;
-	}
-
-	getNewActivePiece() {
-		let piece = this.getRandomPiece();
-		piece.colPosition = Constants.cols / 2;
-		piece.rowPosition = 0;
-		piece.rotation = 0;
-		piece.maxRotation = piece.shapes.length - 1;
-		return piece;
-	}
-
-	cycleActivePiece() {
-		let piece = {...this.nextPiece};
-		piece.colPosition = Constants.cols / 2;
-		piece.rowPosition = 0;
-		piece.rotation = 0;
-		piece.maxRotation = piece.shapes.length - 1;
-		this.activePiece = piece;
-		this.nextPiece = this.getRandomPiece();
-		this.nextPieceDisplay.piece = this.nextPiece;
-	}
-
-	getRandomPiece() {
-		const pieceIndex = Phaser.Math.Between(0, Object.keys(Pieces).length - 1);
-		const pieceType = Object.keys(Pieces)[pieceIndex];
-		const pieceShapes = Object.values(Pieces)[pieceIndex];
-		const colorIndex = Phaser.Math.Between(0, Object.keys(Constants.Colors).length - 1);
-		const randColor = Object.values(Constants.Colors)[colorIndex];
-
-		return {
-			shapes: pieceShapes,
-			color: randColor,
-			type: pieceType
+	handleInput(input) {
+		if(this.gameState === GameConstants.GameState.Running) {
+			const currentShape = this.activePiece.shapes[this.activePiece.rotation];
+			if (input === GameConstants.Inputs.Down) {
+				this.playerDrop();
+			}
+			if (input === GameConstants.Inputs.Enter) {
+				this.gameState = GameConstants.GameState.Paused;
+				this.gravityTimer.paused = true;
+			}
+			if (input === GameConstants.Inputs.Left) {
+				if (this.playfield.isValidPosition(currentShape, this.activePiece.rowPosition, this.activePiece.colPosition - 1)) {
+					this.activePiece.colPosition -= 1;
+				}
+			}
+			if (input === GameConstants.Inputs.Right) {
+				if (this.playfield.isValidPosition(currentShape, this.activePiece.rowPosition, this.activePiece.colPosition + 1)) {
+					this.activePiece.colPosition += 1;
+				}
+			}
+			if (input === GameConstants.Inputs.Up) {
+				const nextRotation = this.peekNextRotation();
+				if (this.playfield.isValidPosition(this.activePiece.shapes[nextRotation], this.activePiece.rowPosition, this.activePiece.colPosition)) {
+					this.activePiece.rotation = nextRotation;
+				}
+			}
+			if (input === GameConstants.Inputs.Space) {
+				this.initiateQuickDrop();
+			}
+		} else if(this.gameState === GameConstants.GameState.GameOver) {
+			if (input === GameConstants.Inputs.Enter) {
+				this.newGame();
+			}
+		} else if(this.gameState === GameConstants.GameState.QuickDrop) {
+			// do nothing yet
+		} else if(this.gameState === GameConstants.GameState.Paused) {
+			if (input === GameConstants.Inputs.Enter) {
+				this.gameState = GameConstants.GameState.Running;
+				this.gravityTimer.paused = false;
+			}
 		}
+	}
+
+	initiateQuickDrop() {
+		this.gravityTimer.reset(this.quickDropTimerConfig);
+		this.gravityTimer.paused = false;
 	}
 
 	handleDelayedRepeatingDown(input) {
@@ -268,38 +247,6 @@ export default class Mattris extends Phaser.Scene {
 		}
 	}
 
-	handleInput(input) {
-		if(this.gameState === Constants.GameState.Running) {
-			const currentShape = this.activePiece.shapes[this.activePiece.rotation];
-			if (input === Constants.Inputs.Down) {
-				this.playerDrop();
-			}
-			if (input === Constants.Inputs.Enter) {
-				this.togglePause();
-			}
-			if (input === Constants.Inputs.Left) {
-				if (this.isValidPosition(currentShape, this.activePiece.rowPosition, this.activePiece.colPosition - 1)) {
-					this.activePiece.colPosition -= 1;
-				}
-			}
-			if (input === Constants.Inputs.Right) {
-				if (this.isValidPosition(currentShape, this.activePiece.rowPosition, this.activePiece.colPosition + 1)) {
-					this.activePiece.colPosition += 1;
-				}
-			}
-			if (input === Constants.Inputs.Up) {
-				const nextRotation = this.peekNextRotation();
-				if (this.isValidPosition(this.activePiece.shapes[nextRotation], this.activePiece.rowPosition, this.activePiece.colPosition)) {
-					this.activePiece.rotation = nextRotation;
-				}
-			}
-		} else if(this.gameState === Constants.GameState.GameOver) {
-			if (input === Constants.Inputs.Enter) {
-				this.newGame();
-			}
-		}
-	}
-
 	createControls() {
 		const keyInput = this.input.keyboard;
 		this.keyLeft = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
@@ -310,55 +257,63 @@ export default class Mattris extends Phaser.Scene {
 		this.keySpace = keyInput.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
 		this.keyDown.on('down', () => {
-			this.handleDelayedRepeatingDown(Constants.Inputs.Down);
+			this.handleDelayedRepeatingDown(GameConstants.Inputs.Down);
 		});
 
 		this.keyDown.on('up', () => {
-			this.handleUp(Constants.Inputs.Down);
+			this.handleUp(GameConstants.Inputs.Down);
 		});
 
 		this.keyUp.on('down', () => {
-			this.handleOncePerDown(Constants.Inputs.Up);
+			this.handleOncePerDown(GameConstants.Inputs.Up);
 		});
 
 		this.keyUp.on('up', () => {
-			this.handleUp(Constants.Inputs.Up);
+			this.handleUp(GameConstants.Inputs.Up);
 		});
 
 		this.keyEnter.on('up', () => {
-			this.handleInput(Constants.Inputs.Enter)
+			this.handleInput(GameConstants.Inputs.Enter)
 		});
 
 		this.keyLeft.on('down', () => {
-			this.handleDelayedRepeatingDown(Constants.Inputs.Left);
+			this.handleDelayedRepeatingDown(GameConstants.Inputs.Left);
 		});
 
 		this.keyLeft.on('up', () => {
-			this.handleUp(Constants.Inputs.Left);
+			this.handleUp(GameConstants.Inputs.Left);
 		});
 
 		this.keyRight.on('down', () => {
-			this.handleDelayedRepeatingDown(Constants.Inputs.Right);
+			this.handleDelayedRepeatingDown(GameConstants.Inputs.Right);
 		});
 
 		this.keyRight.on('up', () => {
-			this.handleUp(Constants.Inputs.Right);
+			this.handleUp(GameConstants.Inputs.Right);
+		});
+
+		this.keySpace.on('down', () => {
+			this.handleOncePerDown(GameConstants.Inputs.Space);
+		});
+
+		this.keySpace.on('up', () => {
+			this.handleUp(GameConstants.Inputs.Space);
 		});
 	}
 
 	createCenteredTextElement(textElement) {
 		const scoreOriginX = ((2 * textElement.x) + textElement.width) / 2;
 		const scoreOriginY = ((2 * textElement.y) + textElement.height) / 2;
-		let scoreText = this.add.text(scoreOriginX, scoreOriginY, "", Constants.textFieldStyle);
+		let scoreText = this.add.text(scoreOriginX, scoreOriginY, "", GameConstants.textFieldStyle);
 		scoreText.setOrigin(.5);
 		return scoreText;
 	}
 
 	createStatGraphics() {
-		this.scoreText = this.createCenteredTextElement(Constants.score);
-		this.linesText = this.createCenteredTextElement(Constants.lines);
-		this.levelText = this.createCenteredTextElement(Constants.level);
-		this.statusText = this.createCenteredTextElement(Constants.status);
+		this.scoreText = this.createCenteredTextElement(GameConstants.score);
+		this.linesText = this.createCenteredTextElement(GameConstants.lines);
+		this.levelText = this.createCenteredTextElement(GameConstants.level);
+		this.statusText = this.createCenteredTextElement(GameConstants.status);
 		this.statusText.setFontSize(18);
 	}
 

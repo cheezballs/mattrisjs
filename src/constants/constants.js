@@ -1,4 +1,4 @@
-const Constants = {
+const GameConstants = {
     cols: 10,
     rows: 20,
     spacing: 2,
@@ -56,7 +56,8 @@ const Constants = {
     GameState: {
         GameOver: "GameOver",
         Running: "Running",
-        Paused: "Paused"
+        Paused: "Paused",
+		QuickDrop: "QuickDrop"
     },
 
 	Colors: {
@@ -72,11 +73,10 @@ const Constants = {
 		Down: "Down",
 		Left: "Left",
 		Right: "Right",
-		QuickDrop: "QuickDrop",
-		Rotate: "Rotate",
-		Enter: "Enter"
+		Enter: "Enter",
+		Space: "Space"
 	}
 
 }
 
-export default Constants;
+export default GameConstants;
