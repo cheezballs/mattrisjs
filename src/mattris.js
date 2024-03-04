@@ -240,15 +240,22 @@ export default class Mattris extends Phaser.Scene {
 	}
 
 	handleDelayedRepeatingDown(input) {
-		if (this.keyTimer !== null) {
+		if (this.keyTimer != null) {
 			this.keyTimer.remove();
 		}
 		this.handleInput(input);
 		this.keyTimer = this.time.addEvent({
-			delay: 250,
+			delay: 200,
 			callback: () => this.handleInput(input),
 			loop: true
 		});
+	}
+
+	handleOncePerDown(input) {
+		if(!this.keyEventFired) {
+			this.handleInput(input)
+			this.keEventFired = true;
+		}
 	}
 
 	handleUp(input) {
@@ -256,15 +263,35 @@ export default class Mattris extends Phaser.Scene {
 			this.keyTimer.remove();
 			this.keyTimer = null;
 		}
+		if(this.keEventFired) {
+			this.keyEventFired = false;
+		}
 	}
 
 	handleInput(input) {
 		if(this.gameState === Constants.GameState.Running) {
+			const currentShape = this.activePiece.shapes[this.activePiece.rotation];
 			if (input === Constants.Inputs.Down) {
 				this.playerDrop();
 			}
 			if (input === Constants.Inputs.Enter) {
 				this.togglePause();
+			}
+			if (input === Constants.Inputs.Left) {
+				if (this.isValidPosition(currentShape, this.activePiece.rowPosition, this.activePiece.colPosition - 1)) {
+					this.activePiece.colPosition -= 1;
+				}
+			}
+			if (input === Constants.Inputs.Right) {
+				if (this.isValidPosition(currentShape, this.activePiece.rowPosition, this.activePiece.colPosition + 1)) {
+					this.activePiece.colPosition += 1;
+				}
+			}
+			if (input === Constants.Inputs.Up) {
+				const nextRotation = this.peekNextRotation();
+				if (this.isValidPosition(this.activePiece.shapes[nextRotation], this.activePiece.rowPosition, this.activePiece.colPosition)) {
+					this.activePiece.rotation = nextRotation;
+				}
 			}
 		} else if(this.gameState === Constants.GameState.GameOver) {
 			if (input === Constants.Inputs.Enter) {
@@ -290,10 +317,33 @@ export default class Mattris extends Phaser.Scene {
 			this.handleUp(Constants.Inputs.Down);
 		});
 
+		this.keyUp.on('down', () => {
+			this.handleOncePerDown(Constants.Inputs.Up);
+		});
+
+		this.keyUp.on('up', () => {
+			this.handleUp(Constants.Inputs.Up);
+		});
+
 		this.keyEnter.on('up', () => {
 			this.handleInput(Constants.Inputs.Enter)
 		});
 
+		this.keyLeft.on('down', () => {
+			this.handleDelayedRepeatingDown(Constants.Inputs.Left);
+		});
+
+		this.keyLeft.on('up', () => {
+			this.handleUp(Constants.Inputs.Left);
+		});
+
+		this.keyRight.on('down', () => {
+			this.handleDelayedRepeatingDown(Constants.Inputs.Right);
+		});
+
+		this.keyRight.on('up', () => {
+			this.handleUp(Constants.Inputs.Right);
+		});
 	}
 
 	createCenteredTextElement(textElement) {
