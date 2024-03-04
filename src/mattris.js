@@ -2,10 +2,10 @@ import Phaser from "phaser";
 import Playfield from "./components/playfield.js";
 import {getRandomPiece} from "./components/pieces.js";
 import {findGravityForLines} from "./components/gravity-breakpoints";
-import NextPieceDisplay from "./components/next-piece-display.js";
 import backgroundImage from "./assets/background.png";
 import {calculateScore} from "./components/score";
 import GameConstants from "./constants/constants";
+import GridBasedDrawable from "./components/grid-based-drawable";
 
 export default class Mattris extends Phaser.Scene {
 
@@ -69,7 +69,7 @@ export default class Mattris extends Phaser.Scene {
 		this.linesVal = 0;
 		this.levelVal = 0;
 		this.playfield = new Playfield(GameConstants.playField.x, GameConstants.playField.y, GameConstants.cols, GameConstants.rows, GameConstants.blockSize, GameConstants.spacing);
-		this.nextPieceDisplay = new NextPieceDisplay(GameConstants.nextPiece.x, GameConstants.nextPiece.y, GameConstants.maxPieceSize, GameConstants.maxPieceSize, GameConstants.previewBlockSize);
+		this.nextPieceDisplay = new GridBasedDrawable(GameConstants.nextPiece.x, GameConstants.nextPiece.y, GameConstants.previewCols, GameConstants.previewRows, GameConstants.previewBlockSize, GameConstants.spacing);
 		this.activePiece = null;
 		this.nextPiece = null;
 		this.gameState = GameConstants.GameState.GameOver;
@@ -80,7 +80,7 @@ export default class Mattris extends Phaser.Scene {
 		this.resetGame();
 		this.activePiece = this.getNewActivePiece();
 		this.nextPiece = getRandomPiece();
-		this.nextPieceDisplay.piece = this.nextPiece;
+		this.nextPieceDisplay.blockCells(this.nextPiece.shapes[0], this.nextPiece.color);
 		this.gameState = GameConstants.GameState.Running;
 		this.gravityTimer.paused = false;
 		this.levelVal = 1;
@@ -98,7 +98,8 @@ export default class Mattris extends Phaser.Scene {
 		this.setDefaultPosition(piece);
 		this.activePiece = piece;
 		this.nextPiece = getRandomPiece();
-		this.nextPieceDisplay.piece = this.nextPiece;
+		this.nextPieceDisplay.clearAll();
+		this.nextPieceDisplay.blockCells(this.nextPiece.shapes[0], this.nextPiece.color);
 	}
 
 	setDefaultPosition(piece) {
@@ -133,7 +134,7 @@ export default class Mattris extends Phaser.Scene {
 		if (this.playfield.isValidPosition(currentShape, piece.rowPosition + 1, piece.colPosition)) {
 			piece.rowPosition += 1;
 		} else {
-			this.playfield.blockCells(currentShape, piece.rowPosition, piece.colPosition, this.activePiece.color);
+			this.playfield.blockCells(currentShape, this.activePiece.color, piece.rowPosition, piece.colPosition);
 			const rowsToClear = this.playfield.getRowsToClear(piece.rowPosition, currentShape.length);
 			this.scoreRows(rowsToClear);
 			this.cycleActivePiece();

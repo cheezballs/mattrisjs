@@ -3,7 +3,9 @@ const GameConstants = {
     rows: 20,
     spacing: 2,
     blockSize: 33,
-    previewBlockSize: 10,
+    previewBlockSize: 15,
+	previewCols: 4,
+	previewRows: 4,
     maxPieceSize: 4,
 
     playField: {
@@ -14,10 +16,10 @@ const GameConstants = {
     },
 
     nextPiece: {
-        x: 390,
-        y: 52,
+        x: 410,
+        y: 70,
         width: 91,
-        height: 91
+        height: 91,
     },
 
     score: {
