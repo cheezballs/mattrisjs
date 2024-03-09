@@ -139,8 +139,14 @@ export default class Mattris extends Phaser.Scene {
 			this.scoreRows(rowsToClear);
 			this.cycleActivePiece();
 			this.gravityTimer.reset(this.gravityTimerConfig);
-			this.gravityTimer.paused = false;
-			this.gameState = GameConstants.GameState.Running;
+
+			if(!this.playfield.isValidPosition(this.activePiece.shapes[0], this.activePiece.rowPosition, this.activePiece.colPosition)) {
+				this.gameState = GameConstants.GameState.GameOver;
+				this.gravityTimer.paused = true;
+			} else {
+				this.gravityTimer.paused = false;
+				this.gameState = GameConstants.GameState.Running;
+			}
 		}
 	}
 
