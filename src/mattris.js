@@ -3,6 +3,8 @@ import Playfield from "./components/playfield.js";
 import {getRandomPiece} from "./components/pieces.js";
 import {findGravityForLines} from "./components/gravity-breakpoints";
 import backgroundImage from "./assets/background.png";
+import pixelatedDreams from "./assets/pixelated-dreams.mp3"
+import blinkX2 from "./assets/blink-x2.mp3"
 import {calculateScore} from "./components/score";
 import GameConstants from "./constants/constants";
 import GridBasedDrawable from "./components/grid-based-drawable";
@@ -12,6 +14,8 @@ export default class Mattris extends Phaser.Scene {
 	constructor() {
 		super("Mattris");
 		this.graphics = null;
+		this.music = null;
+		this.clearLineSound = null;
 		this.gravityTimerConfig = {
 			delay: 1000 * findGravityForLines(this.linesVal),
 			callback: this.gravityDrop,
@@ -27,10 +31,14 @@ export default class Mattris extends Phaser.Scene {
 
 	preload() {
 		this.load.image("background", backgroundImage);
+		this.load.audio("music", pixelatedDreams);
+		this.load.audio("clearLine", blinkX2);
 	}
 
 	create() {
 		this.graphics = this.add.graphics().setDepth(1);
+		this.music = this.sound.add("music", {loop: true});
+		this.clearLineSound = this.sound.add("clearLine", {loop: false});
 		this.createBackground();
 		this.createStatGraphics();
 		this.createControls();
@@ -44,6 +52,12 @@ export default class Mattris extends Phaser.Scene {
 		this.playfield.draw(this.graphics);
 		this.drawActivePiece();
 		this.nextPieceDisplay.draw(this.graphics);
+	}
+
+	playMusic() {
+		if(this.music) {
+			this.music.play();
+		}
 	}
 
 	drawActivePiece() {
@@ -85,6 +99,7 @@ export default class Mattris extends Phaser.Scene {
 		this.gravityTimer.paused = false;
 		this.levelVal = 1;
 		this.scoreVal = 0;
+		this.playMusic();
 	}
 
 	getNewActivePiece() {
@@ -136,7 +151,10 @@ export default class Mattris extends Phaser.Scene {
 		} else {
 			this.playfield.blockCells(currentShape, this.activePiece.color, piece.rowPosition, piece.colPosition);
 			const rowsToClear = this.playfield.getRowsToClear(piece.rowPosition, currentShape.length);
-			this.scoreRows(rowsToClear);
+			if(rowsToClear > 0) {
+				this.scoreRows(rowsToClear);
+				this.clearLineSound.play();
+			}
 			this.cycleActivePiece();
 			this.gravityTimer.reset(this.gravityTimerConfig);
 

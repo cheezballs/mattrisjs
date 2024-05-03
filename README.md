@@ -18,7 +18,7 @@ Make sure you have Node.js and npm installed on your machine.
 #### To start the development server and play the game:
 `npm start`
 
-Open your web browser and navigate to `http://localhost:8080`.
+Open your web browser and navigate to `http://localhost:9000`.
 
 ### Building for Production
 
